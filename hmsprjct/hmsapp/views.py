@@ -1,7 +1,10 @@
 # views.py
+from rest_framework import status
+from rest_framework.views import APIView
+from .serializers import MortuaryTableSerializer
 from rest_framework import generics
 from rest_framework.response import Response
-from .models import Department
+from .models import Department,mortuary_table
 
 class DepartmentListView(generics.ListAPIView):
     def get_queryset(self):
@@ -17,3 +20,11 @@ class DepartmentListView(generics.ListAPIView):
         department_names = list(queryset.values_list('name', flat=True))
         # Return only the list of names
         return Response(department_names)
+
+class MortuaryTableCreateView(APIView):
+    def post(self, request):
+        serializer = MortuaryTableSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
