@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import pymysql
+pymysql.install_as_MySQLdb()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +28,8 @@ SECRET_KEY = 'django-insecure-%_h8ls2cg6jeala44ej(b=33he2edk+-3m%a0x1x^f4-7dp9%(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.0.176', '*']
+
 
 
 # Application definition
@@ -77,15 +81,43 @@ TEMPLATES = [
 WSGI_APPLICATION = 'hmsprjct.wsgi.application'
 
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'newhms_db',  # The name of your local database
+        'USER': 'root',         # The MySQL username
+        'PASSWORD': 'oznavA@123!',  # Your MySQL root password
+        'HOST': '127.0.0.1',    # Localhost
+        'PORT': '3306',         # MySQL default port
+    }
+}
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'avzsolut_azplus',  # Database name
+#         'USER': 'avzsolut_avzsolutions',  # Your MySQL username
+#         'PASSWORD': 'oznavA@123!',  # Your MySQL password
+#         'HOST': 'localhost',
+#         'PORT': '3306'  # Or the IP address of your MySQL server (e.g.,'127.0.0.1' or a remote server's IP)
+#       # Default MySQL port
+#     }
+# }
+
+
+
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+
+
 
 
 # Password validation
