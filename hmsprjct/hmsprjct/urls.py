@@ -16,9 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
-from hmsapp.views import DepartmentListView
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('hmsapp/',include("hmsapp.urls"))
+    # path('hmsapp/',include("hmsapp.urls"))
 ]
