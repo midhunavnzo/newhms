@@ -6,6 +6,7 @@
 #   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
 # Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
+from datetime import datetime
 
 
 class Ambulance(models.Model):
@@ -291,15 +292,17 @@ class LabTest(models.Model):
 
 class Leaveregister(models.Model):
     empid = models.CharField(max_length=255)
-    leave_requested = models.CharField(max_length=255, blank=True, null=True)
+    name = models.CharField(max_length=255)  # New field for employee name
+    leave_requested = models.CharField(max_length=255, blank=True, null=True)  # Start Date
     leave_approved = models.CharField(max_length=255, blank=True, null=True)
-    leave_status = models.CharField(max_length=255, blank=True, null=True)
+    leave_status = models.CharField(max_length=255, blank=True, null=True, default="Pending")
     leave_approved_by = models.CharField(max_length=255, blank=True, null=True)
-    department = models.IntegerField()
-    return_date = models.CharField(max_length=250)
-    cancelled = models.IntegerField()
+    department = models.IntegerField()  # Department ID
+    return_date = models.CharField(max_length=250)  # End Date
+    cancelled = models.IntegerField(default=0)  # 1 or 0
     reason = models.CharField(max_length=250)
-    pending = models.IntegerField()
+    pending = models.IntegerField(default=1) # 1 or 0
+
 
     class Meta:
         managed = False
@@ -317,17 +320,48 @@ class Medicine(models.Model):
         db_table = 'medicine'
 
 
-class MortuaryTable(models.Model):
+class mortuary_table(models.Model):
     fullname = models.CharField(max_length=100)
-    dod = models.DateTimeField()
-    gender = models.CharField(max_length=100)
+    dod = models.DateField(null=True, blank=True)
+    gender = models.CharField(
+    max_length=10,  # Allow longer values like "Female"
+    choices=[
+        ('M', 'Male'),
+        ('F', 'Female'),
+        ('O', 'Other'),
+    ]
+)
     cause_of_death = models.CharField(max_length=250)
     death_cert_num = models.CharField(max_length=100)
     mortuary_fee = models.FloatField()
 
     class Meta:
-        managed = False
         db_table = 'mortuary_table'
+
+    
+# class mortuary_table(models.Model):
+#     fullname = models.CharField(max_length=100)
+#     dod = models.DateField()
+#     GENDER_CHOICES = [
+#         ('M', 'Male'),
+#         ('F', 'Female'),
+#         ('O', 'Other'),  # Additional option for non-binary or other gender identities
+#     ]
+#     gender = models.CharField(
+#         max_length=1,
+#         choices=GENDER_CHOICES,
+#     )
+#     cause_of_death = models.CharField(max_length=250)
+#     death_cert_num = models.CharField(max_length=100)
+#     mortuary_fee = models.FloatField()
+
+#     class Meta:
+#         db_table = 'mortuary_table'
+
+#     def __str__(self):
+#         return self.fullname
+
+
 
 
 class Opbilling(models.Model):
