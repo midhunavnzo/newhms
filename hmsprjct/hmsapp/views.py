@@ -22,11 +22,3 @@
 #         # Return only the list of names
 #         return Response(department_names)
 
-# class MortuaryTableCreateView(APIView):
-#     def post(self, request):
-#         serializer = MortuaryTableSerializer(data=request.data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-#updated
