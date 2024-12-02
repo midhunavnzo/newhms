@@ -236,7 +236,7 @@ class Feedback(models.Model):
     date_reg = models.CharField(max_length=255)
     date_action = models.CharField(max_length=255)
     mail_reg = models.CharField(max_length=255)
-    approved_by = models.IntegerField()
+    approved_by = models.IntegerField(default=0)
     pending = models.IntegerField()
 
     class Meta:
@@ -326,9 +326,9 @@ class mortuary_table(models.Model):
     gender = models.CharField(
     max_length=10,  # Allow longer values like "Female"
     choices=[
-        ('M', 'Male'),
-        ('F', 'Female'),
-        ('O', 'Other'),
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
     ]
 )
     cause_of_death = models.CharField(max_length=250)
@@ -337,6 +337,8 @@ class mortuary_table(models.Model):
 
     class Meta:
         db_table = 'mortuary_table'
+    def __str__(self):
+        return self.fullname
 
     
 # class mortuary_table(models.Model):
@@ -376,14 +378,13 @@ class Opbilling(models.Model):
         db_table = 'opbilling'
 
 
-class PatientReports(models.Model):
+class patient_reports(models.Model):
     patient_id = models.CharField(max_length=100)
-    doctor_id = models.CharField(max_length=100)
+    doctor_id = models.ForeignKey('Staffdetails', on_delete=models.CASCADE, db_column='doctor_id')
     date = models.DateField()
-    file_path = models.CharField(max_length=250)
+    file_path = models.FileField(upload_to='reports/')  # Automatically saves in MEDIA_ROOT/reports/
 
     class Meta:
-        managed = False
         db_table = 'patient_reports'
 
 
@@ -401,8 +402,7 @@ class PatientTest(models.Model):
     class Meta:
         managed = False
         db_table = 'patient_test'
-
-
+        
 class Patientdetails(models.Model):
     firstname = models.CharField(max_length=255)
     lastname = models.CharField(max_length=255, blank=True, null=True)
@@ -428,12 +428,16 @@ class Patientdetails(models.Model):
     image = models.CharField(max_length=500)
     relativetype = models.CharField(max_length=200, blank=True, null=True)
     relativecontactnum = models.CharField(max_length=50, blank=True, null=True)
-    patient_reports = models.CharField(max_length=250)
+    patient_reports = models.CharField(max_length=250, blank=True, null=True, default="")
 
     class Meta:
-        managed = False
+
         db_table = 'patientdetails'
         unique_together = (('id', 'patientid'),)
+
+
+
+
 
 
 class Staffdetails(models.Model):
@@ -448,7 +452,7 @@ class Staffdetails(models.Model):
     email = models.CharField(max_length=255, blank=True, null=True)
     residential_address = models.CharField(max_length=255, blank=True, null=True)
     medical_icense_number = models.CharField(max_length=255, blank=True, null=True)
-    department = models.IntegerField(blank=True, null=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, blank=True, null=True)
     medical_school_attended = models.CharField(max_length=255, blank=True, null=True)
     year_of_graduation = models.DateTimeField(blank=True, null=True)
     residency_information = models.CharField(max_length=255, blank=True, null=True)
@@ -461,8 +465,7 @@ class Staffdetails(models.Model):
     endtime = models.CharField(max_length=50)
     availability_oncall = models.CharField(max_length=255, blank=True, null=True)
     active = models.IntegerField()
-    image = models.CharField(max_length=255)
-
+    image = models.CharField(max_length=255, blank=True, null=True)
     class Meta:
         managed = False
         db_table = 'staffdetails'
