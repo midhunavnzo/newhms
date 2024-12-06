@@ -1,7 +1,7 @@
 # # serializers.py
 from rest_framework import serializers
 from .models import mortuary_table,Complaints,Leaveregister, Department,Patientdetails,Feedback,patient_reports
-from .models import Leaveregister
+from .models import Leaveregister,Staffdetails
 
 # class DepartmentSerializer(serializers.ModelSerializer):
 #     class Meta:
@@ -125,3 +125,12 @@ class PatientReportsSerializer(serializers.ModelSerializer):
     class Meta:
         model = patient_reports
         fields = ['patient_id', 'doctor_id', 'date', 'file_path']
+
+class Doctornameserializer(serializers.ModelSerializer):
+    name=serializers.SerializerMethodField()
+
+    class Meta:
+        model=Staffdetails
+        fields = ['FirstName', 'LastName']
+
+   
