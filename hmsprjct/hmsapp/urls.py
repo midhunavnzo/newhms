@@ -15,6 +15,8 @@ urlpatterns = [
     path('api/get_patient_details/', views.get_patient_details, name='get_patient_details'),
     path('api/deactivate_patient-delete/', views.deactivate_patient, name='deactivate_patient'),
     path('api/upload_report-POST/',views.FileUpload.as_view(), name='upload_report'),
+    path('api/book-dialysis-POST/', views.book_dialysis, name='book_dialysis'),
+    path('api/available-slots-GET/', views.available_slots, name='available_slots'),
 
 
    
