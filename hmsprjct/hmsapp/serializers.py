@@ -3,6 +3,7 @@ from rest_framework import serializers
 from .models import mortuary_table,Complaints,Leaveregister, Department,Patientdetails,Feedback,patient_reports
 from .models import Leaveregister,DialysisBooking
 from datetime import time
+from .models import Leaveregister,Staffdetails 
 
 # class DepartmentSerializer(serializers.ModelSerializer):
 #     class Meta:
@@ -126,6 +127,7 @@ class PatientReportsSerializer(serializers.ModelSerializer):
         fields = ['patient_id', 'doctor_id', 'date', 'file_path']
 
 
+
 class DialysisBookingSerializer(serializers.ModelSerializer):
     patient = serializers.PrimaryKeyRelatedField(queryset=Patientdetails.objects.all())
 
@@ -172,3 +174,11 @@ class DialysisBookingSerializer(serializers.ModelSerializer):
             validated_data['booking_type'] = 'Standard'
         
         return super().create(validated_data)
+
+class Doctornameserializer(serializers.ModelSerializer):
+    name=serializers.SerializerMethodField()
+
+    class Meta:
+        model=Staffdetails
+        fields = ['FirstName', 'LastName']
+

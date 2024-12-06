@@ -18,6 +18,10 @@ urlpatterns = [
     path('api/book-dialysis-POST/', views.book_dialysis, name='book_dialysis'),
     path('api/available-slots-GET/', views.available_slots, name='available_slots'),
 
+    
+   path('api/departments/',views.Departmentlistview.as_view(),name='department_;ist'),
+   path('api/departments/<str:department_name>/doctors/', views.get_doctors_by_department, name='doctor-list-by-department'),
+
 
    
 ]
