@@ -2,7 +2,10 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import MortuaryTableSerializer,UpdateComplaintSerializer,ComplaintSerializer,LeaveregisterSerializer,FeedbackSerializer,FeedbackCreateSerializer,PatientdetailsSerializer
+
+from .serializers import PatientReportsSerializer,DialysisBookingSerializer
 from .serializers import PatientReportsSerializer,DepartmentSerializer
+
 from .models import Complaints, Staffdetails, Department,Leaveregister,Feedback,Patientdetails,patient_reports
 from datetime import datetime
 from .pagination import ComplaintPagination
@@ -17,12 +20,23 @@ from django.conf import settings
 from rest_framework.exceptions import ParseError
 from rest_framework.parsers import FileUploadParser
 from rest_framework.views import APIView
+
+from datetime import time, timedelta
+from rest_framework import serializers
+from .models import DialysisBooking, Patientdetails
+from rest_framework.exceptions import NotFound
+
+
+
+
+
 from rest_framework import generics
+
 
 
 @api_view(['POST'])
 def mortuary_table_create_view(request):
-    if request.method == 'POST': 
+    if request.method == 'POST':
         serializer = MortuaryTableSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -64,31 +78,36 @@ def update_complaint(request):
     complaint.save()
     return Response({"message": "Complaint updated successfully."}, status=status.HTTP_200_OK)
 
-
 @api_view(['GET'])
 def fetch_complaints(request):
+    """
+    Fetch complaints filtered by department name and start date.
+    """
     try:
-        # Fetch complaints where action_comp is 0
-        complaints = Complaints.objects.filter(action_comp=0)
+        # Retrieve query parameters
+        department_name = request.query_params.get('department', None)
+        start_date = request.query_params.get('start_date', None)
 
-        # Apply pagination
-        paginator = ComplaintPagination()
-        paginated_complaints = paginator.paginate_queryset(complaints, request)
+        # Start with all complaints
+        complaints = Complaints.objects.all()
 
-        # Serialize the data
-        serializer = ComplaintSerializer(paginated_complaints, many=True)
+        # Filter by department name
+        if department_name:
+            complaints = complaints.filter(to_whom__department__iexact=department_name)
 
-        # Return paginated response
-        return paginator.get_paginated_response(serializer.data)
+        # Filter by start date
+        if start_date:
+            complaints = complaints.filter(date_reg__gte=start_date)
 
-    except Complaints.DoesNotExist:
-        raise APIException("No complaints found.")
+        # Serialize and return the complaints
+        serializer = ComplaintSerializer(complaints, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     except Exception as e:
         return Response(
-            {"error": str(e)},
+            {"error": f"An error occurred: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
 
 @api_view(['POST'])
 def register_leave(request):
@@ -245,14 +264,13 @@ def update_feedback_status(request):
 
     except Exception as e:
         return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 @api_view(['POST'])
 def add_patient(request):
     data = request.data
 
-    # Provide default for patient_reports if not included
-    data['patient_reports'] = data.get('patient_reports', "")
+    # Handle file upload
+    image_file = request.FILES.get('image', None)
+    data['image'] = image_file  # Pass the uploaded file to the serializer
 
     # Generate patient ID
     last_two_digits_of_year = datetime.datetime.now().strftime('%y')
@@ -260,17 +278,16 @@ def add_patient(request):
     next_id = max_id + 1 if max_id else 1
     custom_id = f"HP{last_two_digits_of_year}{str(next_id).zfill(6)}"
 
-    # Debug: Log custom_id and input data
-    print(f"Custom ID: {custom_id}")
-    print(f"Input Data: {data}")
-
-    # Validate and map department ID
-    department_id = data.get('department')
+    # Validate and map department by name
+    department_name = data.get('department')
+    if not department_name:
+        return Response({"error": "Department name is required"}, status=400)
+    
     try:
-        department = Department.objects.get(id=department_id)
-        data['department'] = department.id  # Ensure the department is referenced by ID
+        department = Department.objects.get(department=department_name)
+        data['department'] = department.id  # Replace the name with the ID for saving
     except Department.DoesNotExist:
-        return Response({"error": f"Department with id {department_id} does not exist"}, status=400)
+        return Response({"error": f"Department with name '{department_name}' does not exist"}, status=400)
 
     # Use the serializer to validate and save the data
     serializer = PatientdetailsSerializer(data=data)
@@ -282,61 +299,52 @@ def add_patient(request):
 
         return Response({"message": "Patient created successfully", "patient_id": custom_id}, status=201)
     else:
-        # Debug: Print validation errors
-        print(serializer.errors)
         return Response(serializer.errors, status=400)
-
 
 @api_view(['GET'])
 def get_patient_details(request):
-    # Extract query parameter
-    fname = request.GET.get('patientnamecontroller', None)
+    # Extract the `patientid` query parameter
+    patient_id = request.GET.get('patientid')
 
     # Validate the query parameter
-    if not fname:
-        return Response({"error": "Parameter 'patientnamecontroller' is required"}, status=400)
+    if not patient_id:
+        return Response({"error": "Parameter 'patientid' is required"}, status=400)
 
     try:
-        # Filter patients based on firstname or patientid
-        patients = Patientdetails.objects.filter(
-            Q(firstname__icontains=fname) | Q(patientid=fname)
-        )
+        # Get the patient details
+        patient = get_object_or_404(Patientdetails, patientid=patient_id)
 
-        if not patients.exists():
-            return Response({"message": "No matching patients found"}, status=404)
+        # Retrieve the related department details, if available
+        department = Department.objects.filter(id=patient.department).first()
+        department_name = department.department if department else "Unknown"
 
-        # Prepare response data
-        json_data = []
-        for patient in patients:
-            # Get the related department name
-            depart = patient.department  # Assuming department stores the department ID or name
-            department = Department.objects.filter(id=depart).first()  # Change `id` if needed to `name`
+        # Prepare the response data
+        response_data = {
+            "first_name": patient.firstname,
+            "last_name": patient.lastname,
+            "patient_id": patient.patientid,
+            "doctor": patient.docname,
+            "prescription": patient.presc,
+            "mobile_number": patient.mobnumber,
+            "date_of_birth": patient.dob,
+            "address": patient.address,
+            "department": department_name,
+            "email": patient.email,
+            "image": request.build_absolute_uri(patient.image.url) if patient.image else None,  # Full image URL
+            "relative_type": patient.relativetype,
+            "relative_contact_number": patient.relativecontactnum,
+            "gender": patient.gender,
+            "blood_group": patient.bloodgroup,
+        }
 
-            json_data.append({
-                "fname": patient.firstname,
-                "lname": patient.lastname,
-                "pid": patient.patientid,
-                "doc": patient.docname,
-                "presc": patient.presc,
-                "mob": patient.mobnumber,
-                "dob": patient.dob,
-                "Address": patient.address,
-                "Department": department.department if department else '',  # Use the correct field
-                "email": patient.email,
-                "img": patient.image,
-                "reltype": patient.relativetype,
-                "relcontact": patient.relativecontactnum,
-                "gender": patient.gender,
-                "bldgrp": patient.bloodgroup,
-            })
+        return Response(response_data, status=200)
 
-        # Return JSON response
-        return Response({"list": json_data}, status=200)
-
-    except Department.DoesNotExist:
-        return Response({"error": "Department not found for one or more patients"}, status=404)
+    except NotFound:
+        return Response({"error": f"Patient with ID '{patient_id}' not found."}, status=404)
 
     except Exception as e:
+        # Log error for debugging if needed
+        print(f"Unexpected error: {str(e)}")
         return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=500)
 
 
@@ -399,11 +407,69 @@ class FileUpload(APIView):
             "message": "File uploaded successfully.",
             "file_path": f"reports/{file.name}"
         }, status=201)
+
+
+@api_view(['POST'])
+def book_dialysis(request):
+    if request.method == 'POST':
+        serializer = DialysisBookingSerializer(data=request.data)
+        if serializer.is_valid():
+            # Generate a unique booking ID if not provided
+            if not serializer.validated_data.get('booking_id'):
+                import uuid
+                serializer.validated_data['booking_id'] = str(uuid.uuid4())
+            
+            serializer.save()
+            return Response({"message": "Booking created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        
+        # Return validation errors
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(['GET'])
+def available_slots(request):
+    date = request.GET.get('date')
+    department = request.GET.get('department')
+
+    if not date or not department:
+        return Response({"error": "Date and department are required."}, status=400)
+
+    # Define allowed slots
+    allowed_slots = [
+        time(10, 0), time(11, 0), time(12, 0), time(13, 0),
+        time(14, 0), time(15, 0), time(16, 0)
+    ]
+
+    # Get already booked slots
+    booked_slots = DialysisBooking.objects.filter(date=date, department=department).values_list('time_slot', flat=True)
+
+    # Find available slots
+    available_slots = [slot for slot in allowed_slots if slot not in booked_slots]
+
+    return Response({"available_slots": available_slots}, status=200)
+
+# class DepartmentListView(generics.ListAPIView):
+#     def get_queryset(self):
+#         queryset = Department.objects.all()
+#         name = self.request.query_params.get('name', None)
+#         if name:
+#             queryset = queryset.filter(name__icontains=name)
+#         return queryset
+
+#     def list(self, request, *args, **kwargs):
+#         queryset = self.get_queryset()
+#         # Extract the department names as a list
+#         department_names = list(queryset.values_list('name', flat=True))
+#         # Return only the list of names
+#         return Response(department_names)
+
     
 #for the doctors and the corresponding departments  
 class Departmentlistview(generics.ListAPIView):
     queryset=Department.objects.all()
     serializer_class=DepartmentSerializer
+
 
 # API to get list of doctors for a specific department
 @api_view(['GET'])

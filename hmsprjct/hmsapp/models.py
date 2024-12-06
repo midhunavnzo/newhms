@@ -139,18 +139,20 @@ class Booktest(models.Model):
 
 
 class Complaints(models.Model):
-    empcode = models.CharField(max_length=255)
-    complaint = models.CharField(max_length=255, blank=True, null=True)
+    empcode = models.IntegerField()
+    complaint = models.TextField()
     date_reg = models.DateTimeField()
-    action_comp = models.IntegerField()
-    name = models.CharField(max_length=200)
-    to_whom = models.CharField(max_length=200)
-    remarks = models.CharField(max_length=100)
-    reason = models.CharField(db_column='Reason', max_length=250)  # Field name made lowercase.
+    action_comp = models.IntegerField(default=0)
+    name = models.CharField(max_length=255)
+    remarks = models.CharField(max_length=255, null=True, blank=True)
+    reason = models.TextField(null=True, blank=True)
+    to_whom = models.ForeignKey('Department', on_delete=models.CASCADE, related_name='complaints', null=True)
+  # ForeignKey to Department model
 
+    def __str__(self):
+        return f"Complaint {self.id} - {self.complaint}"
     class Meta:
-        managed = False
-        db_table = 'complaints'
+        db_table = 'complaints' 
 
 
 class Department(models.Model):
@@ -160,8 +162,10 @@ class Department(models.Model):
     end_time = models.CharField(max_length=100)
 
     class Meta:
-        managed = False
+    
         db_table = 'department'
+    def __str__(self):
+        return self.department     
 
 
 class DjangoAdminLog(models.Model):
@@ -403,6 +407,7 @@ class PatientTest(models.Model):
         managed = False
         db_table = 'patient_test'
         
+
 class Patientdetails(models.Model):
     firstname = models.CharField(max_length=255)
     lastname = models.CharField(max_length=255, blank=True, null=True)
@@ -425,13 +430,12 @@ class Patientdetails(models.Model):
     gender = models.CharField(max_length=100)
     bloodgroup = models.CharField(max_length=50)
     maritialstatus = models.CharField(max_length=100)
-    image = models.CharField(max_length=500)
+    image = models.ImageField(upload_to='patient_images/', blank=True, null=True)  # Replace CharField# Use ImageField for photos
     relativetype = models.CharField(max_length=200, blank=True, null=True)
     relativecontactnum = models.CharField(max_length=50, blank=True, null=True)
     patient_reports = models.CharField(max_length=250, blank=True, null=True, default="")
 
     class Meta:
-
         db_table = 'patientdetails'
         unique_together = (('id', 'patientid'),)
 
@@ -646,3 +650,30 @@ class Users(models.Model):
     class Meta:
         managed = False
         db_table = 'users'
+class DialysisBooking(models.Model):
+    patient = models.ForeignKey(
+        'Patientdetails',
+        on_delete=models.CASCADE,
+        related_name="dialysis_bookings",
+        db_constraint=False  # Optional, to avoid further migration issues
+    )
+    first_name = models.CharField(max_length=255,blank=True, null=True)  # Added first name
+    last_name = models.CharField(max_length=255, blank=True, null=True)  # Added last name
+    mobile = models.CharField(max_length=15,blank=True, null=True)  # Added mobile number
+    email = models.EmailField(max_length=255, blank=True, null=True) # Added email address
+    doctor = models.CharField(max_length=255)
+    department = models.CharField(max_length=255)
+    reason = models.TextField()
+    booking_type = models.CharField(max_length=50)
+    booking_id = models.CharField(max_length=100, unique=True)
+    time_slot = models.TimeField()
+    date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'dialysisbooking'
+        unique_together = (('date', 'time_slot', 'department'),)
+ 
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} - {self.booking_id}"
+  

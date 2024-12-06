@@ -1,17 +1,31 @@
 from django.contrib import admin
-from . models import mortuary_table,Complaints,Staffdetails,Leaveregister,Patientdetails,Feedback
+from . models import mortuary_table,Complaints,Staffdetails,Leaveregister,Patientdetails,Feedback,Department
 # # Register your models here.
 
 # admin.site.register(Department)
 admin.site.register(mortuary_table)
+admin.site.register(Department)
 
-@admin.register(Complaints)
+
+
 class ComplaintsAdmin(admin.ModelAdmin):
-    list_display = ('empcode', 'complaint', 'date_reg', 'action_comp', 'name', 'to_whom', 'remarks', 'reason')
-    search_fields = ('empcode', 'name', 'complaint')
-    list_filter = ('action_comp', 'date_reg')
+    # Display fields in the admin list view
+    list_display = ('id', 'empcode', 'complaint', 'date_reg', 'action_comp', 'name', 'remarks', 'reason', 'get_department_name')
+    
+    # Add search functionality for department and name
+    search_fields = ('name', 'to_whom__department')  # Ensure 'department' matches the field name in Department
 
+    # Allow filtering by department in the admin interface
+    list_filter = ('to_whom', 'action_comp')
 
+    # Define a method to retrieve the department name from the related Department model
+    def get_department_name(self, obj):
+        # Use the correct field name from the Department model
+        return obj.to_whom.department if obj.to_whom else "No Department"
+    get_department_name.short_description = 'Department'  # Custom column header
+
+# Register the model with the custom admin class
+admin.site.register(Complaints, ComplaintsAdmin)
 
 
 @admin.register(Leaveregister)
