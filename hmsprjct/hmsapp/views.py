@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import MortuaryTableSerializer,UpdateComplaintSerializer,ComplaintSerializer,LeaveregisterSerializer,FeedbackSerializer,FeedbackCreateSerializer,PatientdetailsSerializer
-from .serializers import PatientReportsSerializer
+from .serializers import PatientReportsSerializer,Doctornameserializer,DepartmentSerializer
 from .models import Complaints, Staffdetails, Department,Leaveregister,Feedback,Patientdetails,patient_reports
 from datetime import datetime
 from .pagination import ComplaintPagination
@@ -17,6 +17,9 @@ from django.conf import settings
 from rest_framework.exceptions import ParseError
 from rest_framework.parsers import FileUploadParser
 from rest_framework.views import APIView
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from rest_framework import generics
 
 
 @api_view(['POST'])
@@ -399,18 +402,20 @@ class FileUpload(APIView):
             "file_path": f"reports/{file.name}"
         }, status=201)
     
-# class DepartmentListView(generics.ListAPIView):
-#     def get_queryset(self):
-#         queryset = Department.objects.all()
-#         name = self.request.query_params.get('name', None)
-#         if name:
-#             queryset = queryset.filter(name__icontains=name)
-#         return queryset
+#for the doctors and the corresponding departments  
+class Departmentlistview(generics.ListAPIView):
+    queryset=Department.objects.all()
+    serializer_class=DepartmentSerializer
 
-#     def list(self, request, *args, **kwargs):
-#         queryset = self.get_queryset()
-#         # Extract the department names as a list
-#         department_names = list(queryset.values_list('name', flat=True))
-#         # Return only the list of names
-#         return Response(department_names)
-
+# API to get list of doctors for a specific department
+@api_view(['GET'])
+def get_doctors_by_department(request, department_name):
+    try:
+        department = Department.objects.get(department=department_name)
+    except Department.DoesNotExist:
+        return Response({"error": "Department not found"}, status=404)
+    
+    # Get doctors in the given department
+    doctors = Staffdetails.objects.filter(department=department).values('firstname', 'lastname')
+    
+    return Response(doctors)

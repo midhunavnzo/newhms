@@ -2,6 +2,7 @@
 from django.urls import path
 from . import views
 
+
 urlpatterns = [ 
     path('api/mortuary-records-POST/', views.mortuary_table_create_view,name='mortuary_record_create'),
     path('api/update_complaint-POST/',views.update_complaint, name='update_complaint'),
@@ -18,5 +19,7 @@ urlpatterns = [
 
 
    
+   path('api/departments/',views.Departmentlistview.as_view(),name='department_;ist'),
+   path('api/departments/<str:department_name>/doctors/', views.get_doctors_by_department, name='doctor-list-by-department'),
 ]
    
